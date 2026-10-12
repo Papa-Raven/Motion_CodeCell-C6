@@ -19,8 +19,6 @@ WiFiUDP myUdp;
 MicroOscUdp<256> osc(&myUdp, outIp, outPort);
 CodeCell myCodeCell;
 
-uint8_t LED_MAX = 100;                      // Brightness of LED (0-255)
-
 
 // Sensor var
 float lin_x = 0.0, lin_y = 0.0, lin_z = 0.0;       // Linear acceleration (gravity removed)
@@ -35,6 +33,8 @@ float quat_r = 0.0, quat_i = 0.0, quat_j = 0.0, quat_k = 0.0; // Quaternion
 unsigned long ledLastToggle = 0;
 bool ledBlinkOn = false;
 const uint32_t BLINK_INTERVAL_MS = 400; // Flash speed 
+
+uint8_t LED_MAX = 100;                      // Brightness of LED (0-255)
 
 void blink(uint8_t r, uint8_t g, uint8_t b) {
   unsigned long now = millis();
@@ -131,16 +131,12 @@ if (millis() - lastWifiCheck > 5000) {
     }
   }
 */
-  // DIAGNOSTIC (1 Hz) : état Wi-Fi + accélération linéaire
-  /* static unsigned long lastDiag = 0;
-   if (millis() - lastDiag >= 1000) {
-   lastDiag = millis();
-   Serial.printf("[diag] wifi=%d rssi=%d | lin=%.3f %.3f %.3f\n", WiFi.status(), WiFi.RSSI(), lin_x, lin_y, lin_z);
-  } */
 
   // Run the sensor update at 100Hz (10ms)
   if (myCodeCell.Run(100)) {
-    
+
+    // run debug only every 10ms with rest of the loop
+    Serial.printf("wifi=%d rssi=%d | lin=%.3f %.3f %.3f\n", WiFi.status(), WiFi.RSSI(), lin_x, lin_y, lin_z);
 
     //  LINEAR ACCELERATION
     myCodeCell.Motion_LinearAccRead(lin_x, lin_y, lin_z);
