@@ -19,6 +19,8 @@ WiFiUDP myUdp;
 MicroOscUdp<256> osc(&myUdp, outIp, outPort);
 CodeCell myCodeCell;
 
+uint8_t LED_MAX = 100;                      // Brightness of LED (0-255)
+
 
 // Sensor var
 float lin_x = 0.0, lin_y = 0.0, lin_z = 0.0;       // Linear acceleration (gravity removed)
@@ -44,7 +46,6 @@ void blink(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void updateStatusLED() {
-  uint8_t LED_MAX = 1;                      // Brightness of LED (0-255)
   uint8_t powerState = myCodeCell.PowerStateRead();
   uint16_t battLevel = myCodeCell.BatteryLevelRead();
 
@@ -78,19 +79,20 @@ void setup() {
   
   // All sensors CodeCell C6 init
   myCodeCell.Init(
-   // LIGHT                  // Proximity + White + Ambient light
-    + MOTION_LINEAR_ACC    // Linear acceleration (gravity removed)
+      MOTION_LINEAR_ACC    // Linear acceleration (gravity removed)
     + MOTION_ACCELEROMETER // Raw 3-axis acceleration
     + MOTION_GYRO          // 3-axis angular velocity
     + MOTION_MAGNETOMETER  // 3-axis magnetic field
     + MOTION_GRAVITY       // Gravity vector
     + MOTION_ROTATION      // Roll/Pitch/Yaw + Quaternion (with magnetometer)
+    //+ LIGHT                  // Proximity + White + Ambient light
   );
 
   // Cancel LED_Breathing()
   myCodeCell.LED_SetBrightness(0); 
 
   //Wifi setup
+  WiFi.setAutoReconnect(true);              // reconnexion gérée par l'ESP32
   WiFi.begin(ssid, password);
   
 
@@ -99,15 +101,24 @@ void setup() {
 }
 
 void loop() {
-  uint8_t LED_MAX = 1;                      // Brightness of LED (0-255)
-
+/*
   // WiFi reconnection loop
   static unsigned long lastWifiCheck = 0;
+  static unsigned long wifiDownSince = 0;   // 0 = connecté
 if (millis() - lastWifiCheck > 5000) {
   lastWifiCheck = millis();
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiDownSince = 0;
+  } else {
+    if (wifiDownSince == 0) wifiDownSince = millis();
+    // Relance seulement si la connexion échoue depuis plus de 20 s
+    // (appeler reconnect() pendant une connexion en cours l'interrompt)
+    if (millis() - wifiDownSince > 20000) {
+      WiFi.disconnect();
+      WiFi.begin(ssid, password);
+      wifiDownSince = millis();
     }
+  }
 
     if (myCodeCell.PowerStateRead() == POWER_BAT_RUN && myCodeCell.BatteryLevelRead() >= 50) {
      if (myCodeCell.PowerStateRead() != POWER_USB) {
@@ -119,6 +130,13 @@ if (millis() - lastWifiCheck > 5000) {
      }
     }
   }
+*/
+  // DIAGNOSTIC (1 Hz) : état Wi-Fi + accélération linéaire
+  /* static unsigned long lastDiag = 0;
+   if (millis() - lastDiag >= 1000) {
+   lastDiag = millis();
+   Serial.printf("[diag] wifi=%d rssi=%d | lin=%.3f %.3f %.3f\n", WiFi.status(), WiFi.RSSI(), lin_x, lin_y, lin_z);
+  } */
 
   // Run the sensor update at 100Hz (10ms)
   if (myCodeCell.Run(100)) {
@@ -185,4 +203,3 @@ if (millis() - lastWifiCheck > 5000) {
     Serial.print("Gyro y: "); Serial.println(gyro_y);
     Serial.print("Gyro z: "); Serial.println(gyro_z);
     */
-  

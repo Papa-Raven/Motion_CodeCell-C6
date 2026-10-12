@@ -91,6 +91,7 @@ void setup() {
   myCodeCell.LED_SetBrightness(0); 
 
   //Wifi setup
+  WiFi.setAutoReconnect(true);              // reconnexion gérée par l'ESP32
   WiFi.begin(ssid, password);
   
 
@@ -103,11 +104,21 @@ void loop() {
 
   // WiFi reconnection loop
   static unsigned long lastWifiCheck = 0;
+  static unsigned long wifiDownSince = 0;   // 0 = connecté
 if (millis() - lastWifiCheck > 5000) {
   lastWifiCheck = millis();
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiDownSince = 0;
+  } else {
+    if (wifiDownSince == 0) wifiDownSince = millis();
+    // Relance seulement si la connexion échoue depuis plus de 20 s
+    // (appeler reconnect() pendant une connexion en cours l'interrompt)
+    if (millis() - wifiDownSince > 20000) {
+      WiFi.disconnect();
+      WiFi.begin(ssid, password);
+      wifiDownSince = millis();
     }
+  }
 
     if (myCodeCell.PowerStateRead() == POWER_BAT_RUN && myCodeCell.BatteryLevelRead() >= 50) {
      if (myCodeCell.PowerStateRead() != POWER_USB) {
@@ -118,6 +129,13 @@ if (millis() - lastWifiCheck > 5000) {
         }
      }
     }
+  }
+
+  // DIAGNOSTIC (1 Hz) : état Wi-Fi + accélération linéaire
+  static unsigned long lastDiag = 0;
+  if (millis() - lastDiag >= 1000) {
+    lastDiag = millis();
+    Serial.printf("[diag] wifi=%d rssi=%d | lin=%.3f %.3f %.3f\n", WiFi.status(), WiFi.RSSI(), lin_x, lin_y, lin_z);
   }
 
   // Run the sensor update at 100Hz (10ms)
