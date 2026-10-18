@@ -9,7 +9,7 @@ const char* password = "CodeCell00";
 
 // IP Computer
 IPAddress outIp(192,168,8,150); // Mac IPaddress 
-const unsigned int outPort = 8001; // Send to Max on this port
+const unsigned int outPort = 8001; // Send to Max on this port // +1 for the different Codecells (ex: 8002)
 const unsigned int localPort = 8101; // Listen on this port
 
 // Objects
@@ -19,22 +19,21 @@ WiFiUDP myUdp;
 MicroOscUdp<256> osc(&myUdp, outIp, outPort);
 CodeCell myCodeCell;
 
-uint8_t LED_MAX = 100;                      // Brightness of LED (0-255)
-
 
 // Sensor var
-float lin_x = 0.0, lin_y = 0.0, lin_z = 0.0;       // Linear acceleration (gravity removed)
-float accl_x = 0.0, accl_y = 0.0, accl_z = 0.0;     // Raw accelerometer
-float gyro_x = 0.0, gyro_y = 0.0, gyro_z = 0.0;     // Gyroscope (°/s)
-float mag_x = 0.0, mag_y = 0.0, mag_z = 0.0;         // Magnetometer (µT)
-float grav_x = 0.0, grav_y = 0.0, grav_z = 0.0;      // Gravity vector
-float roll360 = 0.0, pitch360 = 0.0, yaw360 = 0.0;   // Euler angles (0–360°)
-float quat_r = 0.0, quat_i = 0.0, quat_j = 0.0, quat_k = 0.0; // Quaternion
+float lin_x = 0.0, lin_y = 0.0, lin_z = 0.0;                   // Linear acceleration (gravity removed)
+float accl_x = 0.0, accl_y = 0.0, accl_z = 0.0;                // Raw accelerometer
+float gyro_x = 0.0, gyro_y = 0.0, gyro_z = 0.0;                // Gyroscope (°/s)
+float mag_x = 0.0, mag_y = 0.0, mag_z = 0.0;                   // Magnetometer (µT)
+float grav_x = 0.0, grav_y = 0.0, grav_z = 0.0;                // Gravity vector
+float roll360 = 0.0, pitch360 = 0.0, yaw360 = 0.0;             // Euler angles (0–360°)
+float quat_r = 0.0, quat_i = 0.0, quat_j = 0.0, quat_k = 0.0;  // Quaternion
 
 // LED indication for battery status
 unsigned long ledLastToggle = 0;
 bool ledBlinkOn = false;
-const uint32_t BLINK_INTERVAL_MS = 400; // Flash speed 
+const uint32_t BLINK_INTERVAL_MS = 400;  // Flash speed 
+uint8_t LED_MAX = 100;                   // Brightness of LED (0-255)
 
 void blink(uint8_t r, uint8_t g, uint8_t b) {
   unsigned long now = millis();
@@ -85,7 +84,7 @@ void setup() {
     + MOTION_MAGNETOMETER  // 3-axis magnetic field
     + MOTION_GRAVITY       // Gravity vector
     + MOTION_ROTATION      // Roll/Pitch/Yaw + Quaternion (with magnetometer)
-    //+ LIGHT                  // Proximity + White + Ambient light
+    //+ LIGHT                // Proximity + White + Ambient light
   );
 
   // Cancel LED_Breathing()
@@ -131,16 +130,12 @@ if (millis() - lastWifiCheck > 5000) {
     }
   }
 */
-  // DIAGNOSTIC (1 Hz) : état Wi-Fi + accélération linéaire
-  /* static unsigned long lastDiag = 0;
-   if (millis() - lastDiag >= 1000) {
-   lastDiag = millis();
-   Serial.printf("[diag] wifi=%d rssi=%d | lin=%.3f %.3f %.3f\n", WiFi.status(), WiFi.RSSI(), lin_x, lin_y, lin_z);
-  } */
 
   // Run the sensor update at 100Hz (10ms)
   if (myCodeCell.Run(100)) {
-    
+
+    // run debug only every 10ms with rest of the loop
+    Serial.printf("wifi=%d rssi=%d | lin=%.3f %.3f %.3f\n", WiFi.status(), WiFi.RSSI(), lin_x, lin_y, lin_z);
 
     //  LINEAR ACCELERATION
     myCodeCell.Motion_LinearAccRead(lin_x, lin_y, lin_z);
@@ -180,7 +175,7 @@ if (millis() - lastWifiCheck > 5000) {
 
 
     // OSC MESSAGE
-     osc.sendMessage("/cc_01/motion", "ffffffffffffffffffffffi", lin_x, lin_y, lin_z, accl_x, accl_y, accl_z, gyro_x, gyro_y, gyro_z, mag_x, mag_y, mag_z, grav_x, grav_y, grav_z, roll360, pitch360, yaw360, quat_r, quat_i, quat_j, quat_k, batteryLevel);
+     osc.sendMessage("/cc/motion", "ffffffffffffffffffffffi", lin_x, lin_y, lin_z, accl_x, accl_y, accl_z, gyro_x, gyro_y, gyro_z, mag_x, mag_y, mag_z, grav_x, grav_y, grav_z, roll360, pitch360, yaw360, quat_r, quat_i, quat_j, quat_k, batteryLevel);
   
     }
   }
